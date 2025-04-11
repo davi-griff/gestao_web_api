@@ -3,6 +3,7 @@ package database
 import (
 	"gestor_api/src/internal/models"
 	"log"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -13,7 +14,15 @@ type Database struct {
 }
 
 func NewDatabase(dsn string) *Database {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	loc, err := time.LoadLocation("America/Sao_Paulo")
+	if err != nil {
+		log.Fatal("Failed to load location: ", err)
+	}
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		NowFunc: func() time.Time {
+			return time.Now().In(loc)
+		},
+	})
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
 	}
@@ -119,17 +128,48 @@ func (d *Database) GetEncontros() ([]models.Encontro, error) {
 	return encontros, nil
 }
 
-func (d *Database) GetEncontroByIdCelula(id uint) (models.Encontro, error) {
-	var encontro models.Encontro
-	if err := d.db.Where("id_celula = ?", id).First(&encontro).Error; err != nil {
-		return models.Encontro{}, err
+func (d *Database) GetEncontroByIdCelula(id uint) ([]models.EncontroBody, error) {
+	var encontros []models.Encontro
+	var encontrosBody []models.EncontroBody
+	if err := d.db.Where("id_celula = ?", id).Order("created_at desc").Limit(10).Find(&encontros).Error; err != nil {
+		return nil, err
 	}
-	return encontro, nil
+
+	for _, encontro := range encontros {
+		var membrosEncontro []models.MembroCelulaEncontro
+		if err := d.db.Where("id_encontro = ?", encontro.ID).Find(&membrosEncontro).Error; err != nil {
+			return nil, err
+		}
+		var membrosPresentes []int
+		for _, membroEncontro := range membrosEncontro {
+			membrosPresentes = append(membrosPresentes, membroEncontro.IDMembro)
+		}
+		encontroBody := models.EncontroBody{
+			ID:               encontro.ID,
+			Data:             encontro.Data,
+			Pregador:         encontro.Pregador,
+			QtdPresentes:     encontro.QtdPresentes,
+			QtdVisitantes:    encontro.QtdVisitantes,
+			OfertaArrecadada: encontro.OfertaArrecadada,
+			MembrosPresentes: membrosPresentes,
+		}
+		encontrosBody = append(encontrosBody, encontroBody)
+	}
+	return encontrosBody, nil
 }
 
-func (d *Database) CreateEncontro(encontro models.Encontro) (models.Encontro, error) {
+func (d *Database) CreateEncontro(encontro models.Encontro, membrosPresentes []int) (models.Encontro, error) {
 	if err := d.db.Create(&encontro).Error; err != nil {
 		return models.Encontro{}, err
+	}
+	for _, membroId := range membrosPresentes {
+		if err := d.db.Create(&models.MembroCelulaEncontro{
+			IDEncontro: int(encontro.ID),
+			IDMembro:   membroId,
+			IDCelula:   encontro.IDCelula,
+		}).Error; err != nil {
+			return models.Encontro{}, err
+		}
 	}
 	return encontro, nil
 }

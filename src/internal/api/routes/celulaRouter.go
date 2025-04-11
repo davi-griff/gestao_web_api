@@ -31,6 +31,7 @@ func (r *CelulaRouter) setupRoutes() {
 		celulas.DELETE(":id", r.handler.DeleteCelula)
 		celulas.GET(":id", r.handler.GetCelulaById)
 		celulas.GET(":id/membros", r.handler.GetMembrosCelula)
+		celulas.POST(":id/membros", r.handler.AdicionarMembroCelula)
 		celulas.GET(":id/encontros", r.handler.GetEncontrosCelula)
 		celulas.POST(":id/encontros", r.handler.CreateEncontro)
 		celulas.PUT(":id/encontros/:encontroId", r.handler.UpdateEncontro)

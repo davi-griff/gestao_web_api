@@ -105,6 +105,29 @@ func (h *CelulaHandler) GetMembrosCelula(c *gin.Context) {
 	c.JSON(http.StatusOK, membrosCelula)
 }
 
+func (h *CelulaHandler) AdicionarMembroCelula(c *gin.Context) {
+	celulaId := c.Param("id")
+	celulaIdUint, err := strconv.ParseUint(celulaId, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	var membro models.MembroCelula
+	if err := c.ShouldBindJSON(&membro); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	membro.IDCelula = int(celulaIdUint)
+	membro, err = h.db.AdicionarMembroCelula(membro)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, membro)
+}
+
 func (h *CelulaHandler) GetEncontrosCelula(c *gin.Context) {
 	celulaId := c.Param("id")
 	celulaIdUint, err := strconv.ParseUint(celulaId, 10, 64)
@@ -121,17 +144,32 @@ func (h *CelulaHandler) GetEncontrosCelula(c *gin.Context) {
 }
 
 func (h *CelulaHandler) CreateEncontro(c *gin.Context) {
-	var encontro models.Encontro
+	celulaId := c.Param("id")
+	celulaIdInt, err := strconv.Atoi(celulaId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+	var encontro models.EncontroBody
 	if err := c.ShouldBindJSON(&encontro); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	encontro, err := h.db.CreateEncontro(encontro)
+	encontroModel := models.Encontro{
+		IDCelula:         celulaIdInt,
+		Data:             encontro.Data,
+		Pregador:         encontro.Pregador,
+		QtdPresentes:     encontro.QtdPresentes,
+		QtdVisitantes:    encontro.QtdVisitantes,
+		OfertaArrecadada: encontro.OfertaArrecadada,
+	}
+
+	encontroResp, err := h.db.CreateEncontro(encontroModel, encontro.MembrosPresentes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, encontro)
+	c.JSON(http.StatusCreated, encontroResp)
 }
 
 func (h *CelulaHandler) UpdateEncontro(c *gin.Context) {

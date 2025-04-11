@@ -23,22 +23,32 @@ type Celula struct {
 type Encontro struct {
 	gorm.Model
 	ID               uint      `gorm:"primaryKey;autoIncrement" json:"ID"`
-	IDCelula         uint      `json:"id_celula"`
+	IDCelula         int       `json:"id_celula"`
 	Data             time.Time `json:"data"`
 	Pregador         string    `json:"pregador"`
 	QtdPresentes     int       `json:"qtd_presentes"`
 	QtdVisitantes    int       `json:"qtd_visitantes"`
-	OfertaArrecadada int       `json:"oferta_arrecadada"`
+	OfertaArrecadada float64   `json:"oferta_arrecadada"`
+}
+
+type EncontroBody struct {
+	ID               uint      `json:"ID"`
+	Data             time.Time `json:"data"`
+	Pregador         string    `json:"pregador"`
+	QtdPresentes     int       `json:"qtd_presentes"`
+	QtdVisitantes    int       `json:"qtd_visitantes"`
+	OfertaArrecadada float64   `json:"oferta_arrecadada"`
+	MembrosPresentes []int     `json:"membros_presentes"`
 }
 
 type MembroCelula struct {
 	gorm.Model
 	ID       uint      `gorm:"primaryKey;autoIncrement" json:"ID"`
-	IDCelula uint      `json:"id_celula"`
+	IDCelula int       `json:"id_celula"`
 	Nome     string    `json:"nome"`
 	Telefone string    `json:"telefone"`
 	Email    string    `json:"email"`
-	DataNasc time.Time `json:"data_nasc"`
+	DataNasc time.Time `json:"data_nascimento"`
 	Endereco string    `json:"endereco"`
 	Batizado bool      `json:"batizado"`
 }
@@ -46,7 +56,7 @@ type MembroCelula struct {
 type MembroCelulaEncontro struct {
 	gorm.Model
 	ID         uint `gorm:"primaryKey;autoIncrement" json:"ID"`
-	IDCelula   uint `json:"id_celula"`
-	IDEncontro uint `json:"id_encontro"`
-	IDMembro   uint `json:"id_membro"`
+	IDCelula   int  `json:"id_celula"`
+	IDEncontro int  `json:"id_encontro"`
+	IDMembro   int  `json:"id_membro"`
 }
